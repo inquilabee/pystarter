@@ -1,0 +1,10 @@
+# Testing
+pytest
+
+# Linting and Formatting
+ruff
+black
+isort
+
+# Pre-commit
+pre-commit
