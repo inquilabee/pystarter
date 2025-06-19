@@ -1,8 +1,13 @@
 #!/bin/bash
 set -e
 
-PROJECT_NAME="myproject"
-PYTHON_VERSION=">=3.13,<4.0"
+if [ -z "$1" ]; then
+  echo "Usage: $0 <project-name> [python-version]"
+  exit 1
+fi
+
+PROJECT_NAME="$1"
+PYTHON_VERSION="${2:-'>=3.13,<4.0'}"
 DATA_DIR="data"
 
 # Remote template URLs
@@ -15,19 +20,29 @@ download() {
 
 GITIGNORE_URL="https://raw.githubusercontent.com/github/gitignore/main/Python.gitignore"
 
-MAKEFILE_URL="https://gist.githubusercontent.com/inquilabee/e1c848f01598ace644883490b8860bb1/raw/4e0c9329fe4cff321312df3d8657124bdc194def/Makefile"
-PRECOMMIT_CONF_URL="https://gist.githubusercontent.com/inquilabee/e1c848f01598ace644883490b8860bb1/raw/4e0c9329fe4cff321312df3d8657124bdc194def/pre-commit-config.yaml"
-BASE_REQ_URL="https://gist.githubusercontent.com/inquilabee/e1c848f01598ace644883490b8860bb1/raw/4e0c9329fe4cff321312df3d8657124bdc194def/base-req.txt"
-DEV_REQ_URL="https://gist.githubusercontent.com/inquilabee/e1c848f01598ace644883490b8860bb1/raw/4e0c9329fe4cff321312df3d8657124bdc194def/dev-req.txt"
+FILE_BASE_URL="https://raw.githubusercontent.com/inquilabee/pystarter/refs/heads/main"
+
+MAKEFILE_URL="${FILE_BASE_URL}/Makefile"
+PRECOMMIT_CONF_URL="${FILE_BASE_URL}/pre-commit-config.yaml"
+BASE_REQ_URL="${FILE_BASE_URL}/base-req.txt"
+DEV_REQ_URL="${FILE_BASE_URL}/dev-req.txt"
 
 PRECOMMIT_MAX_TRIES=5
 
 echo "📁 Setting up project directories..."
 mkdir -p $PROJECT_NAME tests
-touch $PROJECT_NAME/__init__.py tests/__init__.py
+cd $PROJECT_NAME
+mkdir -p requirements
+
+touch __init__.py
+cd ..
+touch tests/__init__.py
+
+cd $PROJECT_NAME
 
 echo "🔃 Git init & .gitignore..."
 git init
+git branch -M main
 download "$GITIGNORE_URL" .gitignore
 
 echo "📄 Downloading Makefile..."
@@ -42,7 +57,6 @@ poetry update pip
 poetry add setuptools
 
 echo "📜 Downloading requirements..."
-mkdir -p requirements
 download "$BASE_REQ_URL" requirements/base.txt
 download "$DEV_REQ_URL" requirements/dev.txt
 
@@ -81,12 +95,10 @@ pre-commit autoupdate
 echo "✅ Initial commit..."
 git add .
 sleep 2
-
 git status
 
 echo "Runnng pre-commit ..."
 tries=0
-
 until pre-commit run --all-files; do
   tries=$((tries+1))
   if [ $tries -ge $PRECOMMIT_MAX_TRIES ]; then
@@ -97,7 +109,6 @@ until pre-commit run --all-files; do
   sleep 1
   git add .
 done
-
 
 echo "Git Status"
 git status
